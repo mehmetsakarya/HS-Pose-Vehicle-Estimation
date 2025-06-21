@@ -1,0 +1,197 @@
+# HS-Pose Vehicle Pose Estimation - Default Configuration
+# =======================================================
+
+# Project metadata
+project:
+  name: "HS-Pose Vehicle Estimation"
+  version: "1.0.0"
+  description: "Vehicle pose estimation using Hybrid Scope Feature Extraction"
+
+# Dataset configuration
+dataset:
+  name: "kitti"
+  root: "./data/kitti"
+  type: "vehicle_pose"
+  max_samples: 100
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  
+  # Data preprocessing
+  preprocessing:
+    image_size: [256, 256]
+    normalize_rgb: true
+    normalize_depth: true
+    depth_clip_range: [0.1, 100.0]
+  
+  # Data augmentation
+  augmentation:
+    enabled: true
+    rotation_range: 15  # degrees
+    brightness_range: 0.2
+    contrast_range: 0.1
+    random_flip: false  # Not suitable for pose estimation
+    gaussian_noise: 0.01
+
+# Model configuration
+model:
+  name: "hspose_vehicle"
+  input_channels: 4  # RGB + Depth
+  num_categories: 3  # Car, Motorcycle, Bicycle
+  
+  # Architecture parameters
+  architecture:
+    local_scope_channels: [64, 128, 256]
+    global_scope_channels: [32, 64, 128]
+    fusion_channels: 512
+    
+    # Prediction heads
+    pose_head_channels: [256, 128, 64]
+    category_head_channels: [256, 128]
+    confidence_head_channels: [128]
+    
+    # Activation and normalization
+    activation: "relu"
+    normalization: "batch_norm"
+    dropout_rate: 0.5
+
+# Training configuration
+training:
+  # Optimization
+  optimizer: "adam"
+  learning_rate: 0.001
+  weight_decay: 1e-4
+  momentum: 0.9  # For SGD
+  
+  # Learning rate scheduling
+  scheduler:
+    type: "step"
+    step_size: 20
+    gamma: 0.5
+    
+  # Training parameters
+  num_epochs: 50
+  batch_size: 4
+  num_workers: 4
+  pin_memory: true
+  
+  # Loss configuration
+  loss:
+    pose_weight: 1.0
+    category_weight: 0.5
+    confidence_weight: 0.3
+    
+  # Regularization
+  regularization:
+    gradient_clip_norm: 1.0
+    early_stopping:
+      enabled: true
+      patience: 10
+      min_delta: 0.001
+
+# Evaluation configuration
+evaluation:
+  batch_size: 1
+  num_workers: 2
+  test_samples: 50
+  
+  # Metrics to compute
+  metrics:
+    - "translation_error"
+    - "rotation_error"
+    - "category_accuracy"
+    - "confidence_correlation"
+    - "inference_time"
+  
+  # Evaluation thresholds
+  thresholds:
+    translation: [0.1, 0.5, 1.0, 2.0, 5.0]  # meters
+    rotation: [5, 10, 15, 30, 45]  # degrees
+    
+  # Visualization settings
+  visualization:
+    save_plots: true
+    plot_format: "png"
+    dpi: 300
+    show_confidence: true
+
+# Hardware configuration
+hardware:
+  device: "auto"  # auto, cpu, cuda
+  gpu_ids: [0]
+  mixed_precision: false
+  benchmark: true
+  deterministic: false
+
+# Logging configuration
+logging:
+  level: "INFO"
+  log_dir: "./results/logs"
+  tensorboard:
+    enabled: true
+    log_dir: "./results/tensorboard"
+  wandb:
+    enabled: false
+    project: "hspose-vehicle"
+    entity: null
+  
+  # What to log
+  log_interval: 10  # batches
+  log_images: true
+  log_model_graph: true
+
+# Output configuration
+output:
+  results_dir: "./results"
+  model_save_dir: "./results/trained_models"
+  plots_dir: "./results/plots"
+  logs_dir: "./results/logs"
+  
+  # Checkpoint saving
+  save_checkpoints: true
+  checkpoint_interval: 5  # epochs
+  save_best_only: false
+  monitor_metric: "val_loss"
+  
+  # Model export
+  export_onnx: false
+  export_torchscript: false
+
+# Comparison configuration (for baseline methods)
+comparison:
+  baseline_methods:
+    - "rtm3d"
+    - "vehipose"
+    - "original_hspose"
+  
+  comparison_metrics:
+    - "translation_error"
+    - "rotation_error"
+    - "inference_time"
+    - "model_size"
+
+# Deployment configuration
+deployment:
+  optimize_for_mobile: false
+  quantization:
+    enabled: false
+    backend: "qnnpack"
+  
+  # Performance targets
+  target_fps: 10
+  max_memory_mb: 2048
+  max_model_size_mb: 100
+
+# Reproducibility
+reproducibility:
+  seed: 42
+  cudnn_deterministic: true
+  cudnn_benchmark: false
+
+# Debug configuration
+debug:
+  enabled: false
+  profile_training: false
+  check_gradients: false
+  log_memory_usage: false
+  save_intermediate_outputs: false
